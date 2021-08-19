@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/main"
+        android:icon="@drawable/ic_main"
+        android:title="메인화면"
+        app:cnb_iconColor="@color/main" />
+
+    <item
+        android:id="@+id/activity"
+        android:icon="@drawable/ic_activity"
+        android:title="운동기록"
+        app:cnb_iconColor="@color/activity" />
+
+    <item
+        android:id="@+id/food"
+        android:icon="@drawable/ic_food"
+        android:title="섭취음식"
+        app:cnb_iconColor="@color/food" />
+
+    <item
+        android:id="@+id/data"
+        android:icon="@drawable/ic_data"
+        android:title="데이터"
+        app:cnb_iconColor="@color/data" />
+
+</menu>
