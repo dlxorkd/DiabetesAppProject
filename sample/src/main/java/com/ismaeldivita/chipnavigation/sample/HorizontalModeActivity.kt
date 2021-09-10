@@ -3,6 +3,8 @@ package com.ismaeldivita.chipnavigation.sample
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.View
+import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -44,4 +46,7 @@ class HorizontalModeActivity : AppCompatActivity() {
 //            menu.showBadge(R.id.data, 32)
         }
     }
+
+
+
 }
