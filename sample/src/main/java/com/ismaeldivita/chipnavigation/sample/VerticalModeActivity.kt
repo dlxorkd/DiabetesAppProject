@@ -9,7 +9,9 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.ParcelFileDescriptor.open
 import android.provider.MediaStore
+import android.system.Os.open
 import android.text.Editable
 import android.transition.ChangeBounds
 import android.transition.TransitionManager
@@ -20,13 +22,23 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import com.ismaeldivita.chipnavigation.ChipNavigationBar
 import com.ismaeldivita.chipnavigation.sample.util.applyWindowInsets
 import com.ismaeldivita.chipnavigation.sample.util.colorAnimation
+import com.mongodb.MongoClient
+import com.mongodb.MongoException
 import kotlinx.android.synthetic.main.activity_vertical.*
 import kotlinx.android.synthetic.main.activity_vertical.view.*
-import java.io.FileOutputStream
+import org.bson.Document
+import java.io.*
+import java.nio.channels.AsynchronousFileChannel.open
+import java.nio.channels.AsynchronousServerSocketChannel.open
+import java.nio.channels.FileChannel.open
 import java.text.SimpleDateFormat
+import java.util.*
+import java.util.Arrays.*
+import java.util.Date.from
 
 val CAMERA = arrayOf(Manifest.permission.CAMERA)
 val STORAGE = arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -45,6 +57,9 @@ class VerticalModeActivity : AppCompatActivity() {
     private val binding by lazy { findViewById<ImageView>(R.id.binding) }
     private val button3 by lazy { findViewById<Button>(R.id.button3) }
 
+    private val button4 by lazy { findViewById<Button>(R.id.button4) }
+    private val textView1 by lazy { findViewById<TextView>(R.id.textView1) }
+
     private var lastColor: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,7 +72,37 @@ class VerticalModeActivity : AppCompatActivity() {
         binding.visibility = View.GONE
         button3.visibility = View.GONE
 
+        button4.visibility = View.GONE
+        textView1.visibility = View.GONE
+
         lastColor = ContextCompat.getColor(this, R.color.blank)
+
+
+        var mongoClient: MongoClient? = null
+        try {
+            mongoClient = MongoClient("localhost", 27017)
+            println("Connected to MongoDB!")
+
+//            var tmp = mongoClient.listDatabaseNames()
+//            for(i in tmp) {
+//                println(i)
+//            }
+
+            var database = mongoClient.getDatabase("diabetes")
+            var collection = database.getCollection("test")
+
+            var document = Document("name", "Activity")
+                .append("contact", Document("phone", "228-555-0149")
+                .append("email", "cafeconleche@example.com")
+                .append("location", listOf(-73.92502, 40.8279556)))
+                .append("stars", 3)
+                .append("categories", listOf("Bakery", "Coffee", "Pastries"));
+            collection.insertOne(document)
+        } catch (e: MongoException) {
+            e.printStackTrace()
+        }
+
+
 
         menu.setOnItemSelectedListener(object : ChipNavigationBar.OnItemSelectedListener {
             override fun onItemSelected(id: Int) {
@@ -95,9 +140,12 @@ class VerticalModeActivity : AppCompatActivity() {
                     button3.setOnClickListener {
 
                     }
+
+                    button4.visibility = View.GONE
+                    textView1.visibility = View.GONE
                 } else if(id == R.id.food) {
                     editText1.visibility = View.VISIBLE
-                    editText1.setHint("Food")
+                    editText1.setHint("Input Food")
 
                     button1.visibility = View.VISIBLE
                     button1.setOnClickListener {
@@ -117,12 +165,88 @@ class VerticalModeActivity : AppCompatActivity() {
                     button3.setOnClickListener {
 
                     }
+
+                    button4.visibility = View.GONE
+                    textView1.visibility = View.GONE
+                } else if(id == R.id.data) {
+                    editText1.visibility = View.GONE
+                    button1.visibility = View.GONE
+                    button2.visibility = View.GONE
+                    binding.visibility = View.GONE
+                    button3.visibility = View.GONE
+                    button4.visibility = View.VISIBLE
+                    textView1.visibility = View.GONE
+                    button4.setOnClickListener {
+                        var displayData : String = ""
+                        assets.list("")?.forEach {
+                            if(it.contains("OkKim")) {
+                                var minput = InputStreamReader(assets.open(it), "x-windows-949")
+                                var reader = BufferedReader(minput)
+                                var countRow = 0
+                                val map: MutableMap<String, Any?> = mutableMapOf()
+                                reader.forEachLine {
+                                    var row = it.split(",")
+                                    var countCol = 0
+//                                    countRow++
+//                                    if(countRow == 3) {
+//                                        for(i in row) {
+//                                            map[i] = null
+//                                        }
+//                                    }
+//                                    if(countRow > 3) {
+//                                        var tmp = map.keys.toTypedArray()
+//                                        for(i in row) {
+//                                            if(i == "") {
+//                                                map[tmp[countCol]] = null
+//                                            } else {
+//                                                map[tmp[countCol]] = i
+//                                            }
+//                                            countCol++
+//                                        }
+//                                    }
+
+
+
+
+                                    for(i in row) {
+                                        countCol++
+                                        if(countCol == 5 || countCol == 6) {
+                                            if(i.toIntOrNull() != null) {
+                                                displayData = displayData + i + ", "
+                                            }
+                                        }
+                                    }
+                                }
+                                textView1.text = displayData
+                            }
+//                            displayData = displayData + it
+                        }
+//                        textView1.text = displayData
+                        textView1.visibility = View.VISIBLE
+
+
+//                        val minput = InputStreamReader(assets.open("OkKim_glucose_2020-10-16.csv"), "x-windows-949")
+//                        val reader = BufferedReader(minput)
+//
+//                        var line : String?
+//                        var displayData : String = ""
+//
+//                        while(reader.readLine().also {line = it} != null) {
+//                            val row = line!!.split(",")
+//                            displayData = displayData + row + "\n"
+//                        }
+//                        textView1.text = displayData
+//                        textView1.visibility = View.VISIBLE
+                    }
                 } else {
                     editText1.visibility = View.GONE
                     button1.visibility = View.GONE
                     button2.visibility = View.GONE
                     binding.visibility = View.GONE
                     button3.visibility = View.GONE
+
+                    button4.visibility = View.GONE
+                    textView1.visibility = View.GONE
                 }
             }
         })
@@ -138,6 +262,8 @@ class VerticalModeActivity : AppCompatActivity() {
         }
 
         button.applyWindowInsets(bottom = true)
+
+        mongoClient!!.close()
 
     }
 
