@@ -7,45 +7,42 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.AsyncTask
 import android.os.Build
 import android.os.Bundle
-import android.os.ParcelFileDescriptor.open
+import android.os.StrictMode
+import android.os.StrictMode.ThreadPolicy
 import android.provider.MediaStore
-import android.system.Os.open
-import android.text.Editable
 import android.transition.ChangeBounds
 import android.transition.TransitionManager
-import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import com.ismaeldivita.chipnavigation.ChipNavigationBar
 import com.ismaeldivita.chipnavigation.sample.util.applyWindowInsets
 import com.ismaeldivita.chipnavigation.sample.util.colorAnimation
 import com.mongodb.MongoClient
 import com.mongodb.MongoException
+import com.mongodb.ServerAddress
+import com.mongodb.client.MongoCollection
 import kotlinx.android.synthetic.main.activity_vertical.*
 import kotlinx.android.synthetic.main.activity_vertical.view.*
 import org.bson.Document
 import java.io.*
-import java.nio.channels.AsynchronousFileChannel.open
-import java.nio.channels.AsynchronousServerSocketChannel.open
-import java.nio.channels.FileChannel.open
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.Arrays.*
-import java.util.Date.from
+
 
 val CAMERA = arrayOf(Manifest.permission.CAMERA)
 val STORAGE = arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
 val CAMERA_CODE = 98
 val STORAGE_CODE = 99
 
-class VerticalModeActivity : AppCompatActivity() {
+class VerticalModeActivity : AppCompatActivity(){
     private val container by lazy { findViewById<ViewGroup>(R.id.container) }
     private val title by lazy { findViewById<TextView>(R.id.title) }
     private val button by lazy { findViewById<ImageView>(R.id.expand_button) }
@@ -64,6 +61,10 @@ class VerticalModeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val policy = ThreadPolicy.Builder().permitAll().build()
+        StrictMode.setThreadPolicy(policy)
+
         setContentView(R.layout.activity_vertical)
 
         editText1.visibility = View.GONE
@@ -78,29 +79,27 @@ class VerticalModeActivity : AppCompatActivity() {
         lastColor = ContextCompat.getColor(this, R.color.blank)
 
 
-        var mongoClient: MongoClient? = null
-        try {
-            mongoClient = MongoClient("localhost", 27017)
-            println("Connected to MongoDB!")
+//        var mongoClient: MongoClient? = null
+//        mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
+//        println("Connected to MongoDB!")
+//        var database = mongoClient.getDatabase("diabetes")
+//        try {
+//            mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
+//            println("Connected to MongoDB!")
 
-//            var tmp = mongoClient.listDatabaseNames()
-//            for(i in tmp) {
-//                println(i)
-//            }
+//            var database = mongoClient.getDatabase("diabetes")
+//            var collection = database.getCollection("test")
 
-            var database = mongoClient.getDatabase("diabetes")
-            var collection = database.getCollection("test")
-
-            var document = Document("name", "Activity")
-                .append("contact", Document("phone", "228-555-0149")
-                .append("email", "cafeconleche@example.com")
-                .append("location", listOf(-73.92502, 40.8279556)))
-                .append("stars", 3)
-                .append("categories", listOf("Bakery", "Coffee", "Pastries"));
-            collection.insertOne(document)
-        } catch (e: MongoException) {
-            e.printStackTrace()
-        }
+//            var document = Document("name", "Activity")
+//                .append("contact", Document("phone", "228-555-0149")
+//                .append("email", "cafeconleche@example.com")
+//                .append("location", listOf(-73.92502, 40.8279556)))
+//                .append("stars", 3)
+//                .append("categories", listOf("Bakery", "Coffee", "Pastries"));
+//            collection.insertOne(document)
+//        } catch (e: MongoException) {
+//            e.printStackTrace()
+//        }
 
 
 
@@ -178,32 +177,46 @@ class VerticalModeActivity : AppCompatActivity() {
                     textView1.visibility = View.GONE
                     button4.setOnClickListener {
                         var displayData : String = ""
-                        assets.list("")?.forEach {
-                            if(it.contains("OkKim")) {
-                                var minput = InputStreamReader(assets.open(it), "x-windows-949")
+                        var flag = true
+                        var keys = mutableListOf<String>()
+                        assets.list("")?.forEach { path ->
+                            if(path.contains("OkKim")) {
+                                var minput = InputStreamReader(assets.open(path), "x-windows-949")
                                 var reader = BufferedReader(minput)
                                 var countRow = 0
-                                val map: MutableMap<String, Any?> = mutableMapOf()
-                                reader.forEachLine {
-                                    var row = it.split(",")
+                                reader.forEachLine { line->
+                                    var row = line.split(",")
                                     var countCol = 0
-//                                    countRow++
-//                                    if(countRow == 3) {
-//                                        for(i in row) {
-//                                            map[i] = null
-//                                        }
-//                                    }
-//                                    if(countRow > 3) {
-//                                        var tmp = map.keys.toTypedArray()
-//                                        for(i in row) {
-//                                            if(i == "") {
-//                                                map[tmp[countCol]] = null
-//                                            } else {
-//                                                map[tmp[countCol]] = i
-//                                            }
-//                                            countCol++
-//                                        }
-//                                    }
+                                    countRow++
+                                    if(countRow == 3) {
+                                        for(i in row) {
+                                            if(flag) {
+//                                                var mongoClient: MongoClient? = null
+//                                                mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
+//                                                println("Connected to MongoDB!")
+//                                                var database = mongoClient!!.getDatabase("diabetes")
+//                                                var collection = database.getCollection("OkKim")
+//                                                var document = Document("name", "Data")
+//                                                    .append(i, listOf<Any>())
+//                                                collection.insertOne(document)
+//                                                mongoClient!!.close()
+//                                                keys.add(i)
+                                            }
+                                        }
+                                        flag = false
+                                    }
+                                    if(countRow > 3) {
+                                        for(i in row) {
+//                                            var mongoClient: MongoClient? = null
+//                                            mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
+//                                            println("Connected to MongoDB!")
+//                                            var database = mongoClient!!.getDatabase("diabetes")
+//                                            var collection = database.getCollection("OkKim")
+//                                            var document = Document("name", "Data")
+//                                            collection.updateOne(document, )
+//                                            mongoClient!!.close()
+                                        }
+                                    }
 
 
 
@@ -263,7 +276,7 @@ class VerticalModeActivity : AppCompatActivity() {
 
         button.applyWindowInsets(bottom = true)
 
-        mongoClient!!.close()
+//        mongoClient!!.close()
 
     }
 
