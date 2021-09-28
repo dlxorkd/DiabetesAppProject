@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
-import android.os.AsyncTask
 import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
@@ -24,10 +23,7 @@ import androidx.core.content.ContextCompat
 import com.ismaeldivita.chipnavigation.ChipNavigationBar
 import com.ismaeldivita.chipnavigation.sample.util.applyWindowInsets
 import com.ismaeldivita.chipnavigation.sample.util.colorAnimation
-import com.mongodb.MongoClient
-import com.mongodb.MongoException
-import com.mongodb.ServerAddress
-import com.mongodb.client.MongoCollection
+import com.mongodb.*
 import kotlinx.android.synthetic.main.activity_vertical.*
 import kotlinx.android.synthetic.main.activity_vertical.view.*
 import org.bson.Document
@@ -35,6 +31,7 @@ import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.Arrays.*
+import kotlin.collections.ArrayList
 
 
 val CAMERA = arrayOf(Manifest.permission.CAMERA)
@@ -79,6 +76,7 @@ class VerticalModeActivity : AppCompatActivity(){
         lastColor = ContextCompat.getColor(this, R.color.blank)
 
 
+
 //        var mongoClient: MongoClient? = null
 //        mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
 //        println("Connected to MongoDB!")
@@ -86,10 +84,10 @@ class VerticalModeActivity : AppCompatActivity(){
 //        try {
 //            mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
 //            println("Connected to MongoDB!")
-
+//
 //            var database = mongoClient.getDatabase("diabetes")
 //            var collection = database.getCollection("test")
-
+//
 //            var document = Document("name", "Activity")
 //                .append("contact", Document("phone", "228-555-0149")
 //                .append("email", "cafeconleche@example.com")
@@ -100,6 +98,7 @@ class VerticalModeActivity : AppCompatActivity(){
 //        } catch (e: MongoException) {
 //            e.printStackTrace()
 //        }
+
 
 
 
@@ -179,13 +178,20 @@ class VerticalModeActivity : AppCompatActivity(){
                         var displayData : String = ""
                         var flag = true
                         var keys = mutableListOf<String>()
+                        var map = mutableMapOf<String, MutableList<Any>>()
+                        var count = 0
                         assets.list("")?.forEach { path ->
                             if(path.contains("OkKim")) {
                                 var minput = InputStreamReader(assets.open(path), "x-windows-949")
                                 var reader = BufferedReader(minput)
                                 var countRow = 0
+                                println(path)
+                                println(countRow)
                                 reader.forEachLine { line->
-                                    var row = line.split(",")
+                                    println(line)
+//                                var line : String?
+//                                while(reader.readLine().also {line = it} != null) {
+                                    var row = line!!.split(",")
                                     var countCol = 0
                                     countRow++
                                     if(countRow == 3) {
@@ -200,12 +206,14 @@ class VerticalModeActivity : AppCompatActivity(){
 //                                                    .append(i, listOf<Any>())
 //                                                collection.insertOne(document)
 //                                                mongoClient!!.close()
-//                                                keys.add(i)
+                                                keys.add(i)
                                             }
                                         }
+//                                        println(keys.size)
                                         flag = false
                                     }
-                                    if(countRow > 3) {
+                                    else if(countRow > 3) {
+                                        var values = mutableListOf<Any>()
                                         for(i in row) {
 //                                            var mongoClient: MongoClient? = null
 //                                            mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
@@ -215,26 +223,52 @@ class VerticalModeActivity : AppCompatActivity(){
 //                                            var document = Document("name", "Data")
 //                                            collection.updateOne(document, )
 //                                            mongoClient!!.close()
+                                            values.add(i)
+                                        }
+//                                        println(values.size)
+                                        var idx = 0
+                                        while(idx != keys.size) {
+//                                            println(keys[idx] + "\t" + values[idx])
+                                            map.getOrPut(keys[idx], ::mutableListOf) += values[idx]
+                                            idx++
                                         }
                                     }
 
-
-
-
-                                    for(i in row) {
-                                        countCol++
-                                        if(countCol == 5 || countCol == 6) {
-                                            if(i.toIntOrNull() != null) {
-                                                displayData = displayData + i + ", "
-                                            }
-                                        }
-                                    }
+//                                    for(i in row) {
+//                                        countCol++
+//                                        if(countCol == 5 || countCol == 6) {
+//                                            if(i.toIntOrNull() != null) {
+//                                                displayData = displayData + i + ", "
+//                                            }
+//                                        }
+//                                    }
+                                    count++
                                 }
-                                textView1.text = displayData
+//                                textView1.text = displayData
+//                                count++ // 6
+                                println(countRow)
                             }
 //                            displayData = displayData + it
+//                            count++ // 208
                         }
-//                        textView1.text = displayData
+                        println(count)
+                        var mongoClient: MongoClient? = null
+//                        mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
+                        mongoClient = MongoClient(ServerAddress("192.168.0.12", 27017))
+                        println("Connected to MongoDB!")
+                        var database = mongoClient!!.getDatabase("diabetes")
+                        var collection = database.getCollection("OkKim")
+                        var document = Document("name", "Data")
+                        var documents = ArrayList<Document>()
+                        documents.add(document)
+                        for(i in map) {
+                            var doc = Document()
+                            doc[i.key] = i.value
+                            documents.add(doc)
+                        }
+                        collection.insertMany(documents)
+                        mongoClient!!.close()
+                        textView1.text = "Success"
                         textView1.visibility = View.VISIBLE
 
 
