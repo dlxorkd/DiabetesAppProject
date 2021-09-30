@@ -6,12 +6,15 @@ import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
 import android.os.StrictMode.ThreadPolicy
 import android.provider.MediaStore
+import android.service.autofill.Dataset
 import android.transition.ChangeBounds
 import android.transition.TransitionManager
 import android.view.View
@@ -20,18 +23,38 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 import com.ismaeldivita.chipnavigation.ChipNavigationBar
 import com.ismaeldivita.chipnavigation.sample.util.applyWindowInsets
 import com.ismaeldivita.chipnavigation.sample.util.colorAnimation
 import com.mongodb.*
+import com.mongodb.client.model.Filters
 import kotlinx.android.synthetic.main.activity_vertical.*
 import kotlinx.android.synthetic.main.activity_vertical.view.*
 import org.bson.Document
 import java.io.*
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.Arrays.*
 import kotlin.collections.ArrayList
+import com.github.mikephil.charting.utils.ViewPortHandler
+
+import com.github.mikephil.charting.animation.ChartAnimator
+import com.github.mikephil.charting.highlight.Highlight
+
+import com.github.mikephil.charting.renderer.LineChartRenderer
+import com.github.mikephil.charting.utils.Transformer
+import android.graphics.BitmapFactory
+import com.github.mikephil.charting.components.LimitLine
 
 
 val CAMERA = arrayOf(Manifest.permission.CAMERA)
@@ -54,6 +77,8 @@ class VerticalModeActivity : AppCompatActivity(){
     private val button4 by lazy { findViewById<Button>(R.id.button4) }
     private val textView1 by lazy { findViewById<TextView>(R.id.textView1) }
 
+    private val LineChart by lazy { findViewById<LineChart>(R.id.LineChart) }
+
     private var lastColor: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,6 +97,8 @@ class VerticalModeActivity : AppCompatActivity(){
 
         button4.visibility = View.GONE
         textView1.visibility = View.GONE
+
+        LineChart.visibility = View.GONE
 
         lastColor = ContextCompat.getColor(this, R.color.blank)
 
@@ -141,6 +168,8 @@ class VerticalModeActivity : AppCompatActivity(){
 
                     button4.visibility = View.GONE
                     textView1.visibility = View.GONE
+
+                    LineChart.visibility = View.GONE
                 } else if(id == R.id.food) {
                     editText1.visibility = View.VISIBLE
                     editText1.setHint("Input Food")
@@ -166,14 +195,19 @@ class VerticalModeActivity : AppCompatActivity(){
 
                     button4.visibility = View.GONE
                     textView1.visibility = View.GONE
+
+                    LineChart.visibility = View.GONE
                 } else if(id == R.id.data) {
                     editText1.visibility = View.GONE
                     button1.visibility = View.GONE
                     button2.visibility = View.GONE
                     binding.visibility = View.GONE
                     button3.visibility = View.GONE
+
                     button4.visibility = View.VISIBLE
                     textView1.visibility = View.GONE
+
+                    LineChart.visibility = View.GONE
                     button4.setOnClickListener {
                         var displayData : String = ""
                         var flag = true
@@ -197,15 +231,6 @@ class VerticalModeActivity : AppCompatActivity(){
                                     if(countRow == 3) {
                                         for(i in row) {
                                             if(flag) {
-//                                                var mongoClient: MongoClient? = null
-//                                                mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
-//                                                println("Connected to MongoDB!")
-//                                                var database = mongoClient!!.getDatabase("diabetes")
-//                                                var collection = database.getCollection("OkKim")
-//                                                var document = Document("name", "Data")
-//                                                    .append(i, listOf<Any>())
-//                                                collection.insertOne(document)
-//                                                mongoClient!!.close()
                                                 keys.add(i)
                                             }
                                         }
@@ -215,14 +240,6 @@ class VerticalModeActivity : AppCompatActivity(){
                                     else if(countRow > 3) {
                                         var values = mutableListOf<Any>()
                                         for(i in row) {
-//                                            var mongoClient: MongoClient? = null
-//                                            mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
-//                                            println("Connected to MongoDB!")
-//                                            var database = mongoClient!!.getDatabase("diabetes")
-//                                            var collection = database.getCollection("OkKim")
-//                                            var document = Document("name", "Data")
-//                                            collection.updateOne(document, )
-//                                            mongoClient!!.close()
                                             values.add(i)
                                         }
 //                                        println(values.size)
@@ -233,15 +250,6 @@ class VerticalModeActivity : AppCompatActivity(){
                                             idx++
                                         }
                                     }
-
-//                                    for(i in row) {
-//                                        countCol++
-//                                        if(countCol == 5 || countCol == 6) {
-//                                            if(i.toIntOrNull() != null) {
-//                                                displayData = displayData + i + ", "
-//                                            }
-//                                        }
-//                                    }
                                     count++
                                 }
 //                                textView1.text = displayData
@@ -254,36 +262,130 @@ class VerticalModeActivity : AppCompatActivity(){
                         println(count)
                         var mongoClient: MongoClient? = null
 //                        mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
-                        mongoClient = MongoClient(ServerAddress("192.168.0.12", 27017))
+                        mongoClient = MongoClient(ServerAddress("127.0.0.1", 27017))
+//                        mongoClient = MongoClient("8cc7-220-67-133-59.ngrok.io")
                         println("Connected to MongoDB!")
                         var database = mongoClient!!.getDatabase("diabetes")
                         var collection = database.getCollection("OkKim")
-                        var document = Document("name", "Data")
+//                        var document = Document("name", "Data")
                         var documents = ArrayList<Document>()
-                        documents.add(document)
+//                        documents.add(document)
                         for(i in map) {
                             var doc = Document()
                             doc[i.key] = i.value
                             documents.add(doc)
                         }
-                        collection.insertMany(documents)
-                        mongoClient!!.close()
+                        if(collection.find().first().isNullOrEmpty()) {
+                            collection.insertMany(documents)
+                        }
+//                        mongoClient!!.close()
                         textView1.text = "Success"
                         textView1.visibility = View.VISIBLE
 
+                        var timeGlucose = mutableMapOf<String, String>()
+                        var tmpList1 = mutableListOf<String>()
+                        var tmpList2 = mutableListOf<String>()
+                        var tmpList3 = mutableListOf<String>()
 
-//                        val minput = InputStreamReader(assets.open("OkKim_glucose_2020-10-16.csv"), "x-windows-949")
-//                        val reader = BufferedReader(minput)
+                        var timeStamp = collection.find(Filters.exists("장치 타임스탬프"))
+                        timeStamp.forEach {
+                            println(it["장치 타임스탬프"])
+                            tmpList1 = it["장치 타임스탬프"] as MutableList<String>
+                        }
+
+                        var pastGlucose = collection.find(Filters.exists("과거 혈당 mg/dL"))
+                        pastGlucose.forEach {
+                            println(it["과거 혈당 mg/dL"])
+                            tmpList2 = it["과거 혈당 mg/dL"] as MutableList<String>
+                        }
+
+                        var scanGlucose = collection.find(Filters.exists("혈당 스캔 mg/dL"))
+                        scanGlucose.forEach {
+                            println(it["혈당 스캔 mg/dL"])
+                            tmpList3 = it["혈당 스캔 mg/dL"] as MutableList<String>
+                        }
+
+                        var idx = 0
+                        while(idx != tmpList1.size) {
+                            timeGlucose[tmpList1[idx]] = tmpList2[idx]
+                            idx++
+                        }
+                        idx = 0
+                        while(idx != tmpList1.size) {
+                            if(timeGlucose[tmpList1[idx]].isNullOrEmpty()) {
+                                timeGlucose[tmpList1[idx]] = tmpList3[idx]
+                            }
+                            idx++
+                        }
+
+                        val dateTimeStrToLocalDateTime: (String) -> LocalDateTime = {
+                            LocalDateTime.parse(it, DateTimeFormatter.ofPattern("[yyyy-MM-dd HH:mm]" + "[yyyy-MM-dd H:mm"))
+                        }
+
+                        var t = timeGlucose.toSortedMap(
+                            compareBy<String> {
+                                LocalDateTime.parse(it, DateTimeFormatter.ofPattern("[yyyy-MM-dd HH:mm]" + "[yyyy-MM-dd H:mm"))
+                            }.thenBy { it }
+                        )
+                        println(t.keys.first())
+                        println(t.values.first())
+                        println(t.keys.last())
+                        println(t.values.last())
+
+//                        val list = listOf("14-10-2016 | 15:48",
+//                            "01-08-2015 | 09:29",
+//                            "15-11-2016 | 19:43")
 //
-//                        var line : String?
-//                        var displayData : String = ""
+//// You will get List<String> which is sorted in ascending order
+//                        list.sortedBy(dateTimeStrToLocalDateTime)
+//                        println(list.sortedBy(dateTimeStrToLocalDateTime))
 //
-//                        while(reader.readLine().also {line = it} != null) {
-//                            val row = line!!.split(",")
-//                            displayData = displayData + row + "\n"
-//                        }
-//                        textView1.text = displayData
-//                        textView1.visibility = View.VISIBLE
+//// You will get List<String> which is sorted in descending order
+//                        list.sortedByDescending(dateTimeStrToLocalDateTime)
+//                        println(list.sortedByDescending(dateTimeStrToLocalDateTime))
+
+                        var values = ArrayList<Entry>()
+                        idx = 0
+                        var maxVal = -1
+                        t.forEach {
+                            if(!it.value.isNullOrEmpty()) {
+                                values.add(Entry(idx.toFloat(), it.value.toFloat()))
+                                if(it.value.toFloat() > maxVal) {
+                                    maxVal = it.value.toFloat().toInt()
+                                }
+                                idx++
+                            }
+                        }
+
+                        var xAxis = LineChart.xAxis
+                        xAxis.position = XAxis.XAxisPosition.BOTTOM
+                        xAxis.valueFormatter = IndexAxisValueFormatter(t.keys)
+
+
+                        var set1 = LineDataSet(values, "Glucose")
+
+                        var dataset = ArrayList<ILineDataSet>()
+                        dataset.add(set1)
+
+                        var data = LineData(dataset)
+
+                        set1.setColor(Color.BLACK)
+                        set1.setCircleColor(Color.BLACK)
+
+                        var ld = LineData()
+                        var ll = LimitLine(maxVal.toFloat())
+                        ll.lineColor = Color.RED
+                        ll.lineWidth = 4f
+                        ll.label = "DANGEROUS"
+                        ll.labelPosition = LimitLine.LimitLabelPosition.RIGHT_TOP
+                        ll.textColor = Color.RED
+//                        LineChart.xAxis.addLimitLine(ll)
+                        LineChart.axisLeft.addLimitLine(ll)
+
+                        LineChart.setDrawBorders(true)
+
+                        LineChart.data = data
+                        LineChart.visibility = View.VISIBLE
                     }
                 } else {
                     editText1.visibility = View.GONE
@@ -294,6 +396,8 @@ class VerticalModeActivity : AppCompatActivity(){
 
                     button4.visibility = View.GONE
                     textView1.visibility = View.GONE
+
+                    LineChart.visibility = View.VISIBLE
                 }
             }
         })
@@ -408,6 +512,7 @@ class VerticalModeActivity : AppCompatActivity(){
 
     fun RandomFileName() : String {
         val fineName = SimpleDateFormat("yyyyMMddHHmmss").format(System.currentTimeMillis())
+//        val fineName = SimpleDateFormat("yyyy-MM-dd HH:mm").format(System.currentTimeMillis())
         return fineName
     }
 
