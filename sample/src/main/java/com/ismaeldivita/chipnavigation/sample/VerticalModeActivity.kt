@@ -3,27 +3,29 @@ package com.ismaeldivita.chipnavigation.sample
 import android.Manifest
 import android.app.Activity
 import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
+import android.graphics.*
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
 import android.os.StrictMode.ThreadPolicy
 import android.provider.MediaStore
-import android.service.autofill.Dataset
 import android.transition.ChangeBounds
 import android.transition.TransitionManager
+import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.components.LimitLine
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
@@ -35,32 +37,30 @@ import com.ismaeldivita.chipnavigation.sample.util.applyWindowInsets
 import com.ismaeldivita.chipnavigation.sample.util.colorAnimation
 import com.mongodb.*
 import com.mongodb.client.model.Filters
+import com.mongodb.gridfs.GridFS
 import kotlinx.android.synthetic.main.activity_vertical.*
 import kotlinx.android.synthetic.main.activity_vertical.view.*
+import kotlinx.android.synthetic.main.item.view.*
 import org.bson.Document
 import java.io.*
 import java.text.SimpleDateFormat
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.Arrays.*
 import kotlin.collections.ArrayList
-import com.github.mikephil.charting.utils.ViewPortHandler
-
-import com.github.mikephil.charting.animation.ChartAnimator
-import com.github.mikephil.charting.highlight.Highlight
-
-import com.github.mikephil.charting.renderer.LineChartRenderer
-import com.github.mikephil.charting.utils.Transformer
-import android.graphics.BitmapFactory
-import com.github.mikephil.charting.components.LimitLine
 
 
 val CAMERA = arrayOf(Manifest.permission.CAMERA)
 val STORAGE = arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
 val CAMERA_CODE = 98
 val STORAGE_CODE = 99
+var BUTTON1 = 100
+val BUTTON2 = 200
+
+var photoUri: Uri? = null
+
+var myUri: String? = null
 
 class VerticalModeActivity : AppCompatActivity(){
     private val container by lazy { findViewById<ViewGroup>(R.id.container) }
@@ -73,6 +73,8 @@ class VerticalModeActivity : AppCompatActivity(){
     private val button2 by lazy { findViewById<Button>(R.id.button2) }
     private val binding by lazy { findViewById<ImageView>(R.id.binding) }
     private val button3 by lazy { findViewById<Button>(R.id.button3) }
+    private val textView by lazy { findViewById<TextView>(R.id.textView) }
+    private val listView by lazy { findViewById<ListView>(R.id.list_view) }
 
     private val button4 by lazy { findViewById<Button>(R.id.button4) }
     private val textView1 by lazy { findViewById<TextView>(R.id.textView1) }
@@ -94,6 +96,8 @@ class VerticalModeActivity : AppCompatActivity(){
         button2.visibility = View.GONE
         binding.visibility = View.GONE
         button3.visibility = View.GONE
+        textView.visibility = View.GONE
+        listView.visibility = View.GONE
 
         button4.visibility = View.GONE
         textView1.visibility = View.GONE
@@ -150,21 +154,119 @@ class VerticalModeActivity : AppCompatActivity(){
                     button1.visibility = View.VISIBLE
                     button1.setOnClickListener {
                         CallCamera()
+//                        val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+//                        takePictureIntent.resolveActivity(packageManager)?.also {
+//                            startActivityForResult(takePictureIntent, BUTTON1)
+//                        }
                         binding.visibility = View.GONE
+                        textView.visibility = View.GONE
+                        listView.visibility = View.GONE
                     }
 
                     button2.visibility = View.VISIBLE
                     button2.setOnClickListener {
                         GetAlbum()
+//                        val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+//                        val photoFile = File(
+//                            File("${filesDir}/image").apply{
+//                                if(!this.exists()){
+//                                    this.mkdirs()
+//                                }
+//                            },
+//                            newJpgFileName()
+//                        )
+//                        photoUri = FileProvider.getUriForFile(
+//                            this@VerticalModeActivity,
+//                            "com.ismaeldivita.chipnavigation.sample.fileprovider",
+//                            photoFile
+//                        )
+//                        takePictureIntent.resolveActivity(packageManager)?.also{
+//                            takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
+//                            startActivityForResult(takePictureIntent, BUTTON2)
+//                        }
                         binding.visibility = View.VISIBLE
+                        textView.visibility = View.GONE
+                        listView.visibility = View.GONE
                     }
 
                     binding.visibility = View.GONE
 
                     button3.visibility = View.VISIBLE
                     button3.setOnClickListener {
+                        val items = mutableListOf<ListViewItem>()
+                        var displayData : String = ""
+                        binding.visibility = View.GONE
+                        var mongoClient: MongoClient? = null
+//                        mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
+//                        mongoClient = MongoClient(ServerAddress("127.0.0.1", 27017))
 
+                        mongoClient = MongoClient("2.tcp.ngrok.io", 17794)
+
+                        println("Connected to MongoDB!")
+                        var database = mongoClient!!.getDatabase("OkKim_Activity")
+                        var collection = database.getCollection("Activity")
+
+                        if(!editText1.text.toString().isNullOrEmpty()) {
+                            println(editText1.text.toString())
+                            var document = Document("Activity", editText1.text.toString())
+                            collection.insertOne(document)
+                        }
+
+                        var activity = collection.find(Filters.exists("Activity"))
+                        activity.forEach {
+                            displayData = displayData + it["Activity"] + " "
+                        }
+
+                        textView.text = displayData
+
+                        if(!myUri.isNullOrEmpty()) {
+                            val imageFile = File(myUri)
+                            val gfsPhoto = GridFS(mongoClient!!.getDB("OkKim_Activity"))
+                            val gfsFile = gfsPhoto.createFile(imageFile)
+                            gfsFile.save()
+
+                            val cursor = gfsPhoto.fileList
+                            while (cursor.hasNext()) {
+                                var cursorNext = cursor.next()
+                                var fileName = cursorNext.get("filename").toString()
+                                var uploadDate = cursorNext.get("uploadDate").toString()
+                                var imageForOutput = gfsPhoto.findOne(fileName)
+                                imageForOutput.writeTo("/sdcard/Pictures/$fileName")
+                                var file = FileInputStream("/sdcard/Pictures/$fileName")
+                                var buf = BufferedInputStream(file)
+                                var bitmap = BitmapFactory.decodeStream(buf)
+                                items.add(ListViewItem(bitmap, uploadDate))
+                            }
+                            val adapter = ListViewAdapter(items)
+                            listView.adapter = adapter
+                            listView.visibility = View.VISIBLE
+                        }
+
+                        if(myUri.isNullOrEmpty()) {
+                            val gfsPhoto = GridFS(mongoClient!!.getDB("OkKim_Activity"))
+                            val cursor = gfsPhoto.fileList
+                            while (cursor.hasNext()) {
+                                var cursorNext = cursor.next()
+                                var fileName = cursorNext.get("filename").toString()
+                                var uploadDate = cursorNext.get("uploadDate").toString()
+                                var imageForOutput = gfsPhoto.findOne(fileName)
+                                imageForOutput.writeTo("/sdcard/Pictures/$fileName")
+                                var file = FileInputStream("/sdcard/Pictures/$fileName")
+                                var buf = BufferedInputStream(file)
+                                var bitmap = BitmapFactory.decodeStream(buf)
+                                items.add(ListViewItem(bitmap, uploadDate))
+                            }
+                            val adapter = ListViewAdapter(items)
+                            listView.adapter = adapter
+                            listView.visibility = View.VISIBLE
+                        }
+
+                        textView.visibility = View.VISIBLE
+                        myUri = null
+                        editText1.text.clear()
                     }
+                    textView.visibility = View.GONE
+                    listView.visibility = View.GONE
 
                     button4.visibility = View.GONE
                     textView1.visibility = View.GONE
@@ -178,20 +280,96 @@ class VerticalModeActivity : AppCompatActivity(){
                     button1.setOnClickListener {
                         CallCamera()
                         binding.visibility = View.GONE
+                        textView.visibility = View.GONE
+                        listView.visibility = View.GONE
                     }
 
                     button2.visibility = View.VISIBLE
                     button2.setOnClickListener {
                         GetAlbum()
                         binding.visibility = View.VISIBLE
+                        textView.visibility = View.GONE
+                        listView.visibility = View.GONE
                     }
 
                     binding.visibility = View.GONE
 
                     button3.visibility = View.VISIBLE
                     button3.setOnClickListener {
+                        val items = mutableListOf<ListViewItem>()
+                        var displayData : String = ""
+                        binding.visibility = View.GONE
+                        var mongoClient: MongoClient? = null
+//                        mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
+//                        mongoClient = MongoClient(ServerAddress("127.0.0.1", 27017))
 
+                        mongoClient = MongoClient("2.tcp.ngrok.io", 17794)
+
+                        println("Connected to MongoDB!")
+                        var database = mongoClient!!.getDatabase("OkKim_Food")
+                        var collection = database.getCollection("Food")
+
+                        if(!editText1.text.toString().isNullOrEmpty()) {
+                            println(editText1.text.toString())
+                            var document = Document("Food", editText1.text.toString())
+                            collection.insertOne(document)
+                        }
+
+                        var activity = collection.find(Filters.exists("Food"))
+                        activity.forEach {
+                            displayData = displayData + it["Food"] + " "
+                        }
+
+                        textView.text = displayData
+
+                        if(!myUri.isNullOrEmpty()) {
+                            val imageFile = File(myUri)
+                            val gfsPhoto = GridFS(mongoClient!!.getDB("OkKim_Food"))
+                            val gfsFile = gfsPhoto.createFile(imageFile)
+                            gfsFile.save()
+
+                            val cursor = gfsPhoto.fileList
+                            while (cursor.hasNext()) {
+                                var cursorNext = cursor.next()
+                                var fileName = cursorNext.get("filename").toString()
+                                var uploadDate = cursorNext.get("uploadDate").toString()
+                                var imageForOutput = gfsPhoto.findOne(fileName)
+                                imageForOutput.writeTo("/sdcard/Pictures/$fileName")
+                                var file = FileInputStream("/sdcard/Pictures/$fileName")
+                                var buf = BufferedInputStream(file)
+                                var bitmap = BitmapFactory.decodeStream(buf)
+                                items.add(ListViewItem(bitmap, uploadDate))
+                            }
+                            val adapter = ListViewAdapter(items)
+                            listView.adapter = adapter
+                            listView.visibility = View.VISIBLE
+                        }
+
+                        if(myUri.isNullOrEmpty()) {
+                            val gfsPhoto = GridFS(mongoClient!!.getDB("OkKim_Food"))
+                            val cursor = gfsPhoto.fileList
+                            while (cursor.hasNext()) {
+                                var cursorNext = cursor.next()
+                                var fileName = cursorNext.get("filename").toString()
+                                var uploadDate = cursorNext.get("uploadDate").toString()
+                                var imageForOutput = gfsPhoto.findOne(fileName)
+                                imageForOutput.writeTo("/sdcard/Pictures/$fileName")
+                                var file = FileInputStream("/sdcard/Pictures/$fileName")
+                                var buf = BufferedInputStream(file)
+                                var bitmap = BitmapFactory.decodeStream(buf)
+                                items.add(ListViewItem(bitmap, uploadDate))
+                            }
+                            val adapter = ListViewAdapter(items)
+                            listView.adapter = adapter
+                            listView.visibility = View.VISIBLE
+                        }
+
+                        textView.visibility = View.VISIBLE
+                        myUri = null
+                        editText1.text.clear()
                     }
+                    textView.visibility = View.GONE
+                    listView.visibility = View.GONE
 
                     button4.visibility = View.GONE
                     textView1.visibility = View.GONE
@@ -203,6 +381,8 @@ class VerticalModeActivity : AppCompatActivity(){
                     button2.visibility = View.GONE
                     binding.visibility = View.GONE
                     button3.visibility = View.GONE
+                    textView.visibility = View.GONE
+                    listView.visibility = View.GONE
 
                     button4.visibility = View.VISIBLE
                     textView1.visibility = View.GONE
@@ -262,8 +442,10 @@ class VerticalModeActivity : AppCompatActivity(){
                         println(count)
                         var mongoClient: MongoClient? = null
 //                        mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
-                        mongoClient = MongoClient(ServerAddress("127.0.0.1", 27017))
-//                        mongoClient = MongoClient("8cc7-220-67-133-59.ngrok.io")
+//                        mongoClient = MongoClient(ServerAddress("127.0.0.1", 27017))
+
+                        mongoClient = MongoClient("2.tcp.ngrok.io", 17794)
+
                         println("Connected to MongoDB!")
                         var database = mongoClient!!.getDatabase("diabetes")
                         var collection = database.getCollection("OkKim")
@@ -393,6 +575,8 @@ class VerticalModeActivity : AppCompatActivity(){
                     button2.visibility = View.GONE
                     binding.visibility = View.GONE
                     button3.visibility = View.GONE
+                    textView.visibility = View.GONE
+                    listView.visibility = View.GONE
 
                     button4.visibility = View.GONE
                     textView1.visibility = View.GONE
@@ -489,6 +673,7 @@ class VerticalModeActivity : AppCompatActivity(){
         return uri;
     }
 
+    @RequiresApi(Build.VERSION_CODES.P)
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
@@ -497,21 +682,50 @@ class VerticalModeActivity : AppCompatActivity(){
                 CAMERA_CODE -> {
                     if (data?.extras?.get("data") != null) {
                         val img = data?.extras?.get("data") as Bitmap
-                        val uri = saveFile(RandomFileName(), "image/jpg", img)
+                        val randomFileName = RandomFileName()
+                        val uri = saveFile(randomFileName, "image/jpg", img)
+//                        myUri = "/sdcard/Pictures/$randomFileName.jpg"
+//                        println(uri!!.path)
+//                        println(myUri)
+                        val cursor = contentResolver.query(uri!!, null, null, null, null)
+                        cursor!!.moveToNext()
+                        val path = cursor.getString(cursor.getColumnIndex("_data"))
+                        cursor.close()
+                        println(path)
+                        myUri = path
                         binding.setImageURI(uri)
                     }
                 }
 
                 STORAGE_CODE -> {
                     val uri = data?.data
+                    val cursor = contentResolver.query(uri!!, null, null, null, null)
+                    cursor!!.moveToNext()
+                    val path = cursor.getString(cursor.getColumnIndex("_data"))
+                    cursor.close()
+                    println(path)
+                    myUri = path
                     binding.setImageURI(uri)
+                }
+                BUTTON1 -> {
+                    val imageBitmap = data?.extras?.get("data") as Bitmap
+                    binding.setImageBitmap(imageBitmap)
+                }
+
+                BUTTON2 -> {
+//                    val imageBitmap = data?.extras?.get("data") as Bitmap
+//                    saveBitmapAsJPGFile(imageBitmap)
+//                    binding.setImageBitmap(imageBitmap)
+                    val imageBitmap = photoUri?.let { ImageDecoder.createSource(this.contentResolver, it) }
+                    binding.setImageBitmap(imageBitmap?.let { ImageDecoder.decodeBitmap(it) })
+                    Toast.makeText(this, photoUri?.path, Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
 
     fun RandomFileName() : String {
-        val fineName = SimpleDateFormat("yyyyMMddHHmmss").format(System.currentTimeMillis())
+        val fineName = SimpleDateFormat("yyyyMMdd_HHmmss").format(System.currentTimeMillis())
 //        val fineName = SimpleDateFormat("yyyy-MM-dd HH:mm").format(System.currentTimeMillis())
         return fineName
     }
@@ -523,4 +737,49 @@ class VerticalModeActivity : AppCompatActivity(){
             startActivityForResult(itt, STORAGE_CODE)
         }
     }
+
+    private fun newJpgFileName() : String {
+        val sdf = SimpleDateFormat("yyyyMMdd_HHmmss")
+        val filename = sdf.format(System.currentTimeMillis())
+        return "${filename}.jpg"
+    }
+
+    private fun saveBitmapAsJPGFile(bitmap: Bitmap) {
+        val path = File(filesDir, "image")
+        if(!path.exists()){
+            path.mkdirs()
+        }
+        val file = File(path, newJpgFileName())
+        var imageFile: OutputStream? = null
+        try{
+            file.createNewFile()
+            imageFile = FileOutputStream(file)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, imageFile)
+            imageFile.close()
+            Toast.makeText(this, file.absolutePath, Toast.LENGTH_LONG).show()
+        }catch (e: Exception){
+            null
+        }
+    }
+
+    class ListViewAdapter(private val items: MutableList<ListViewItem>) : BaseAdapter() {
+        override fun getCount(): Int = items.size
+
+        override fun getItem(position: Int): ListViewItem = items[position]
+
+        override fun getItemId(position: Int): Long = position.toLong()
+
+        override fun getView(position: Int, view: View?, parent: ViewGroup?): View {
+            var convertView = view
+            if (convertView == null) convertView = LayoutInflater.from(parent?.context).inflate(R.layout.item, parent, false)
+            val item: ListViewItem = items[position]
+            convertView!!.binding2.setImageBitmap(item.icon)
+            convertView.tv_title.text = item.title
+
+            return convertView
+        }
+    }
+
+
+    data class ListViewItem(val icon: Bitmap, val title: String)
 }

@@ -29,6 +29,17 @@
             </intent-filter>
         </activity>
 
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.ismaeldivita.chipnavigation.sample.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <!--파일경로 xml 생성-->
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_path"/>
+        </provider>
+
     </application>
 
 </manifest>
