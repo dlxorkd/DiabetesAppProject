@@ -1,6 +1,7 @@
 package com.ismaeldivita.chipnavigation.sample
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 
@@ -42,5 +43,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         //setContentView(R.layout.activity_vertical)
         startActivity(Intent(this, VerticalModeActivity::class.java))
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
     }
 }

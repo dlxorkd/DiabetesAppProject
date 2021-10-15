@@ -1,12 +1,14 @@
 package com.ismaeldivita.chipnavigation.sample
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ContentValues
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.*
+import android.hardware.Camera
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -17,6 +19,7 @@ import android.transition.ChangeBounds
 import android.transition.TransitionManager
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
@@ -38,9 +41,13 @@ import com.ismaeldivita.chipnavigation.sample.util.colorAnimation
 import com.mongodb.*
 import com.mongodb.client.model.Filters
 import com.mongodb.gridfs.GridFS
+import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_vertical.*
 import kotlinx.android.synthetic.main.activity_vertical.view.*
 import kotlinx.android.synthetic.main.item.view.*
+import net.kibotu.heartrateometer.HeartRateOmeter
+import net.kibotu.kalmanrx.jama.Matrix
+import net.kibotu.kalmanrx.jkalman.JKalman
 import org.bson.Document
 import java.io.*
 import java.text.SimpleDateFormat
@@ -55,8 +62,11 @@ val CAMERA = arrayOf(Manifest.permission.CAMERA)
 val STORAGE = arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
 val CAMERA_CODE = 98
 val STORAGE_CODE = 99
-var BUTTON1 = 100
+val BUTTON1 = 100
 val BUTTON2 = 200
+val BUTTON3 = 300
+val BUTTON4 = 400
+val BUTTON5 = 500
 
 var photoUri: Uri? = null
 
@@ -81,7 +91,19 @@ class VerticalModeActivity : AppCompatActivity(){
 
     private val LineChart by lazy { findViewById<LineChart>(R.id.LineChart) }
 
+    private val button5 by lazy { findViewById<Button>(R.id.button5) }
+    private val button6 by lazy { findViewById<Button>(R.id.button6) }
+    private val preview by lazy { findViewById<SurfaceView>(R.id.preview) }
+    private val label by lazy { findViewById<TextView>(R.id.label) }
+    private val finger by lazy { findViewById<TextView>(R.id.finger) }
+
     private var lastColor: Int = 0
+
+    private var subscription: CompositeDisposable? = null
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -103,6 +125,12 @@ class VerticalModeActivity : AppCompatActivity(){
         textView1.visibility = View.GONE
 
         LineChart.visibility = View.GONE
+
+        button5.visibility = View.GONE
+        button6.visibility = View.GONE
+        preview.visibility = View.GONE
+        label.visibility = View.GONE
+        finger.visibility = View.GONE
 
         lastColor = ContextCompat.getColor(this, R.color.blank)
 
@@ -161,6 +189,10 @@ class VerticalModeActivity : AppCompatActivity(){
                         binding.visibility = View.GONE
                         textView.visibility = View.GONE
                         listView.visibility = View.GONE
+
+                        preview.visibility = View.GONE
+                        label.visibility = View.GONE
+                        finger.visibility = View.GONE
                     }
 
                     button2.visibility = View.VISIBLE
@@ -187,12 +219,19 @@ class VerticalModeActivity : AppCompatActivity(){
                         binding.visibility = View.VISIBLE
                         textView.visibility = View.GONE
                         listView.visibility = View.GONE
+
+                        preview.visibility = View.GONE
+                        label.visibility = View.GONE
+                        finger.visibility = View.GONE
                     }
 
                     binding.visibility = View.GONE
 
                     button3.visibility = View.VISIBLE
                     button3.setOnClickListener {
+                        preview.visibility = View.GONE
+                        label.visibility = View.GONE
+                        finger.visibility = View.GONE
                         val items = mutableListOf<ListViewItem>()
                         var displayData : String = ""
                         binding.visibility = View.GONE
@@ -200,7 +239,7 @@ class VerticalModeActivity : AppCompatActivity(){
 //                        mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
 //                        mongoClient = MongoClient(ServerAddress("127.0.0.1", 27017))
 
-                        mongoClient = MongoClient("2.tcp.ngrok.io", 17794)
+                        mongoClient = MongoClient("6.tcp.ngrok.io", 18800)
 
                         println("Connected to MongoDB!")
                         var database = mongoClient!!.getDatabase("OkKim_Activity")
@@ -272,6 +311,29 @@ class VerticalModeActivity : AppCompatActivity(){
                     textView1.visibility = View.GONE
 
                     LineChart.visibility = View.GONE
+
+                    button5.visibility = View.VISIBLE
+                    button5.setOnClickListener {
+                        binding.visibility = View.GONE
+                        textView.visibility = View.GONE
+                        listView.visibility = View.GONE
+
+                        onResume()
+
+                        preview.visibility = View.VISIBLE
+                        label.visibility = View.VISIBLE
+                        finger.visibility = View.VISIBLE
+                    }
+                    button6.visibility = View.VISIBLE
+                    button6.setOnClickListener {
+                        onPause()
+                        preview.visibility = View.GONE
+                        label.visibility = View.GONE
+                        finger.visibility = View.GONE
+                    }
+                    preview.visibility = View.GONE
+                    label.visibility = View.GONE
+                    finger.visibility = View.GONE
                 } else if(id == R.id.food) {
                     editText1.visibility = View.VISIBLE
                     editText1.setHint("Input Food")
@@ -303,7 +365,7 @@ class VerticalModeActivity : AppCompatActivity(){
 //                        mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
 //                        mongoClient = MongoClient(ServerAddress("127.0.0.1", 27017))
 
-                        mongoClient = MongoClient("2.tcp.ngrok.io", 17794)
+                        mongoClient = MongoClient("6.tcp.ngrok.io", 18800)
 
                         println("Connected to MongoDB!")
                         var database = mongoClient!!.getDatabase("OkKim_Food")
@@ -375,6 +437,12 @@ class VerticalModeActivity : AppCompatActivity(){
                     textView1.visibility = View.GONE
 
                     LineChart.visibility = View.GONE
+
+                    button5.visibility = View.GONE
+                    button6.visibility = View.GONE
+                    preview.visibility = View.GONE
+                    label.visibility = View.GONE
+                    finger.visibility = View.GONE
                 } else if(id == R.id.data) {
                     editText1.visibility = View.GONE
                     button1.visibility = View.GONE
@@ -444,7 +512,7 @@ class VerticalModeActivity : AppCompatActivity(){
 //                        mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
 //                        mongoClient = MongoClient(ServerAddress("127.0.0.1", 27017))
 
-                        mongoClient = MongoClient("2.tcp.ngrok.io", 17794)
+                        mongoClient = MongoClient("6.tcp.ngrok.io", 18800)
 
                         println("Connected to MongoDB!")
                         var database = mongoClient!!.getDatabase("diabetes")
@@ -569,6 +637,12 @@ class VerticalModeActivity : AppCompatActivity(){
                         LineChart.data = data
                         LineChart.visibility = View.VISIBLE
                     }
+
+                    button5.visibility = View.GONE
+                    button6.visibility = View.GONE
+                    preview.visibility = View.GONE
+                    label.visibility = View.GONE
+                    finger.visibility = View.GONE
                 } else {
                     editText1.visibility = View.GONE
                     button1.visibility = View.GONE
@@ -582,6 +656,12 @@ class VerticalModeActivity : AppCompatActivity(){
                     textView1.visibility = View.GONE
 
                     LineChart.visibility = View.VISIBLE
+
+                    button5.visibility = View.GONE
+                    button6.visibility = View.GONE
+                    preview.visibility = View.GONE
+                    label.visibility = View.GONE
+                    finger.visibility = View.GONE
                 }
             }
         })
@@ -707,30 +787,135 @@ class VerticalModeActivity : AppCompatActivity(){
                     myUri = path
                     binding.setImageURI(uri)
                 }
-                BUTTON1 -> {
-                    val imageBitmap = data?.extras?.get("data") as Bitmap
-                    binding.setImageBitmap(imageBitmap)
-                }
 
-                BUTTON2 -> {
+//                BUTTON1 -> {
+//                    val imageBitmap = data?.extras?.get("data") as Bitmap
+//                    binding.setImageBitmap(imageBitmap)
+//                }
+//
+//                BUTTON2 -> {
 //                    val imageBitmap = data?.extras?.get("data") as Bitmap
 //                    saveBitmapAsJPGFile(imageBitmap)
 //                    binding.setImageBitmap(imageBitmap)
-                    val imageBitmap = photoUri?.let { ImageDecoder.createSource(this.contentResolver, it) }
-                    binding.setImageBitmap(imageBitmap?.let { ImageDecoder.decodeBitmap(it) })
-                    Toast.makeText(this, photoUri?.path, Toast.LENGTH_LONG).show()
+//                    val imageBitmap = photoUri?.let { ImageDecoder.createSource(this.contentResolver, it) }
+//                    binding.setImageBitmap(imageBitmap?.let { ImageDecoder.decodeBitmap(it) })
+//                    Toast.makeText(this, photoUri?.path, Toast.LENGTH_LONG).show()
+//                }
+
+                BUTTON5 -> {
+//                    val kalman = JKalman(2, 1)
+//
+//                    // measurement [x]
+//                    val m = Matrix(1, 1)
+//
+//                    // transitions for x, dx
+//                    val tr = arrayOf(doubleArrayOf(1.0, 0.0), doubleArrayOf(0.0, 1.0))
+//                    kalman.transition_matrix = Matrix(tr)
+//
+//                    // 1s somewhere?
+//                    kalman.error_cov_post = kalman.error_cov_post.identity()
+//
+//                    val bpmUpdates = HeartRateOmeter()
+//                        .withAverageAfterSeconds(3)
+//                        .setFingerDetectionListener(this::onFingerChange)
+//                        .bpmUpdates(preview)
+//                        .subscribe({
+//
+//                            if (it.value == 0)
+//                                return@subscribe
+//
+//                            m.set(0, 0, it.value.toDouble())
+//
+//                            // state [x, dx]
+//                            val s = kalman.Predict()
+//
+//                            // corrected state [x, dx]
+//                            val c = kalman.Correct(m)
+//
+//                            val bpm = it.copy(value = c.get(0, 0).toInt())
+//                            Log.v("HeartRateOmeter", "[onBpm] ${it.value} => ${bpm.value}")
+//                            onBpm(bpm)
+//                        }, Throwable::printStackTrace)
+//
+//                    subscription?.add(bpmUpdates)
                 }
             }
         }
     }
 
-    fun RandomFileName() : String {
+    @SuppressLint("SetTextI18n")
+    private fun onBpm(bpm: HeartRateOmeter.Bpm) {
+        // Log.v("HeartRateOmeter", "[onBpm] $bpm")
+        label.text = "$bpm bpm"
+    }
+
+    private fun onFingerChange(fingerDetected: Boolean){
+        finger.text = "$fingerDetected"
+    }
+
+    private fun startHeartRate() {
+        checkPermission(CAMERA, CAMERA_CODE)
+        val kalman = JKalman(2, 1)
+
+        // measurement [x]
+        val m = Matrix(1, 1)
+
+        // transitions for x, dx
+        val tr = arrayOf(doubleArrayOf(1.0, 0.0), doubleArrayOf(0.0, 1.0))
+        kalman.transition_matrix = Matrix(tr)
+
+        // 1s somewhere?
+        kalman.error_cov_post = kalman.error_cov_post.identity()
+
+        val bpmUpdates = HeartRateOmeter()
+            .withAverageAfterSeconds(3)
+            .setFingerDetectionListener(this@VerticalModeActivity::onFingerChange)
+            .bpmUpdates(preview)
+            .subscribe({
+
+                if (it.value == 0)
+                    return@subscribe
+
+                m.set(0, 0, it.value.toDouble())
+
+                // state [x, dx]
+                val s = kalman.Predict()
+
+                // corrected state [x, dx]
+                val c = kalman.Correct(m)
+
+                val bpm = it.copy(value = c.get(0, 0).toInt())
+                Log.v("HeartRateOmeter", "[onBpm] ${it.value} => ${bpm.value}")
+                onBpm(bpm)
+            }, Throwable::printStackTrace)
+
+        subscription?.add(bpmUpdates)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        dispose()
+        subscription = CompositeDisposable()
+        startHeartRate()
+    }
+
+    override fun onPause() {
+        dispose()
+        super.onPause()
+    }
+
+    private fun dispose() {
+        if (subscription?.isDisposed == false)
+            subscription?.dispose()
+    }
+
+    private fun RandomFileName() : String {
         val fineName = SimpleDateFormat("yyyyMMdd_HHmmss").format(System.currentTimeMillis())
 //        val fineName = SimpleDateFormat("yyyy-MM-dd HH:mm").format(System.currentTimeMillis())
         return fineName
     }
 
-    fun GetAlbum() {
+    private fun GetAlbum() {
         if (checkPermission(STORAGE, STORAGE_CODE)) {
             val itt = Intent(Intent.ACTION_PICK)
             itt.type = MediaStore.Images.Media.CONTENT_TYPE

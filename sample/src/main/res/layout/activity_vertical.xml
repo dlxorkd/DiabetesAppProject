@@ -41,7 +41,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical">
 
         <TextView
@@ -55,35 +55,71 @@
         <EditText
             android:id="@+id/editText1"
             android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            />
+            android:orientation="horizontal">
 
         <Button
             android:id="@+id/button1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Camera"
-            />
+            android:text="Camera"/>
 
         <Button
             android:id="@+id/button2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Image"
-            />
+            android:text="Image" />
+
+            <Button
+                android:id="@+id/button3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Submit"/>
+        </LinearLayout>
 
         <ImageView
             android:id="@+id/binding"
             android:layout_width="match_parent"
-            android:layout_height="400dp"
-            />
+            android:layout_height="400dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
         <Button
-            android:id="@+id/button3"
+            android:id="@+id/button5"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Submit"
-            />
+            android:text="Heart_Rate"/>
+
+        <Button
+            android:id="@+id/button6"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Halt"/>
+        </LinearLayout>
+
+        <SurfaceView
+            android:id="@+id/preview"
+            android:layout_width="300dp"
+            android:layout_height="300dp"/>
+
+        <TextView
+            android:id="@+id/label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="32sp"/>
+
+        <TextView
+            android:id="@+id/finger"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="32sp"/>
 
         <TextView
             android:id="@+id/textView"
@@ -91,8 +127,7 @@
             android:layout_height="wrap_content"
             android:padding="20dp"
             android:textSize="40sp"
-            android:textStyle="bold"
-            />
+            android:textStyle="bold"/>
 
         <ListView
             android:id="@+id/list_view"
@@ -103,19 +138,18 @@
             android:id="@+id/button4"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="GetCSV"
-            />
+            android:text="GetCSV"/>
 
         <TextView
             android:id="@+id/textView1"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            />
+            android:layout_height="wrap_content"/>
 
         <com.github.mikephil.charting.charts.LineChart
             android:id="@+id/LineChart"
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
+
     </LinearLayout>
 
 </LinearLayout>

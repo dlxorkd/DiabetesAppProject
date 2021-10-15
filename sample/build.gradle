@@ -42,4 +42,8 @@ dependencies {
     implementation 'com.github.doyaaaaaken:kotlin-csv-js:1.1.0' //for Kotlin JS platform
 
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+
+    implementation 'io.reactivex.rxjava2:rxjava:2.2.8'
+    implementation 'com.github.kibotu:Heart-Rate-Ometer:-SNAPSHOT'
+    implementation ('com.github.kibotu:KalmanRx:1.2.1') { transitive = true }
 }
