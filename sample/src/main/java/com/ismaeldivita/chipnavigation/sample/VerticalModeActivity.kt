@@ -93,6 +93,7 @@ class VerticalModeActivity : AppCompatActivity(){
 
     private val button5 by lazy { findViewById<Button>(R.id.button5) }
     private val button6 by lazy { findViewById<Button>(R.id.button6) }
+    private val button7 by lazy { findViewById<Button>(R.id.button7)}
     private val preview by lazy { findViewById<SurfaceView>(R.id.preview) }
     private val label by lazy { findViewById<TextView>(R.id.label) }
     private val finger by lazy { findViewById<TextView>(R.id.finger) }
@@ -103,6 +104,11 @@ class VerticalModeActivity : AppCompatActivity(){
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+    }
+
+    public override fun onBackPressed() {
+        super.onBackPressed()
+        startActivity(Intent(this, VerticalModeActivity::class.java))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -128,6 +134,7 @@ class VerticalModeActivity : AppCompatActivity(){
 
         button5.visibility = View.GONE
         button6.visibility = View.GONE
+        button7.visibility = View.GONE
         preview.visibility = View.GONE
         label.visibility = View.GONE
         finger.visibility = View.GONE
@@ -331,6 +338,11 @@ class VerticalModeActivity : AppCompatActivity(){
                         label.visibility = View.GONE
                         finger.visibility = View.GONE
                     }
+                    button7.visibility = View.VISIBLE
+                    button7.setOnClickListener {
+                        val intent = Intent(applicationContext, HeartRate::class.java)
+                        startActivity(intent)
+                    }
                     preview.visibility = View.GONE
                     label.visibility = View.GONE
                     finger.visibility = View.GONE
@@ -440,6 +452,7 @@ class VerticalModeActivity : AppCompatActivity(){
 
                     button5.visibility = View.GONE
                     button6.visibility = View.GONE
+                    button7.visibility = View.GONE
                     preview.visibility = View.GONE
                     label.visibility = View.GONE
                     finger.visibility = View.GONE
@@ -640,6 +653,7 @@ class VerticalModeActivity : AppCompatActivity(){
 
                     button5.visibility = View.GONE
                     button6.visibility = View.GONE
+                    button7.visibility = View.GONE
                     preview.visibility = View.GONE
                     label.visibility = View.GONE
                     finger.visibility = View.GONE
@@ -659,6 +673,7 @@ class VerticalModeActivity : AppCompatActivity(){
 
                     button5.visibility = View.GONE
                     button6.visibility = View.GONE
+                    button7.visibility = View.GONE
                     preview.visibility = View.GONE
                     label.visibility = View.GONE
                     finger.visibility = View.GONE
@@ -757,6 +772,9 @@ class VerticalModeActivity : AppCompatActivity(){
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
+        println(resultCode)
+        println(requestCode)
+
         if (resultCode == Activity.RESULT_OK) {
             when (requestCode) {
                 CAMERA_CODE -> {
@@ -774,6 +792,8 @@ class VerticalModeActivity : AppCompatActivity(){
                         println(path)
                         myUri = path
                         binding.setImageURI(uri)
+                        binding.layoutParams.width = 400
+                        binding.layoutParams.height = 400
                     }
                 }
 
@@ -786,6 +806,8 @@ class VerticalModeActivity : AppCompatActivity(){
                     println(path)
                     myUri = path
                     binding.setImageURI(uri)
+                    binding.layoutParams.width = 400
+                    binding.layoutParams.height = 400
                 }
 
 //                BUTTON1 -> {
@@ -840,6 +862,11 @@ class VerticalModeActivity : AppCompatActivity(){
 //                    subscription?.add(bpmUpdates)
                 }
             }
+        } else {
+            println("hi")
+            binding.setImageResource(android.R.color.transparent)
+            binding.layoutParams.width = 0
+            binding.layoutParams.height = 0
         }
     }
 

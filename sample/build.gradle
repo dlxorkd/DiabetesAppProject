@@ -46,4 +46,13 @@ dependencies {
     implementation 'io.reactivex.rxjava2:rxjava:2.2.8'
     implementation 'com.github.kibotu:Heart-Rate-Ometer:-SNAPSHOT'
     implementation ('com.github.kibotu:KalmanRx:1.2.1') { transitive = true }
+
+    implementation("com.google.android.gms:play-services-fitness:20.0.0")
+    implementation("com.google.android.gms:play-services-auth:19.2.0")
+    implementation 'com.google.android.gms:play-services-location:18.0.0'
+
+//    implementation platform('com.google.firebase:firebase-bom:28.4.2')
+//    implementation 'com.google.firebase:firebase-analytics-ktx'
 }
+
+apply plugin: 'com.google.gms.google-services'
