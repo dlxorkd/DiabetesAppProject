@@ -15,7 +15,6 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.NonNull
-import androidx.annotation.RestrictTo
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -26,11 +25,7 @@ import com.google.android.gms.common.api.Scope
 import com.google.android.gms.fitness.Fitness
 import com.google.android.gms.fitness.FitnessOptions
 import com.google.android.gms.fitness.data.*
-import com.google.android.gms.fitness.request.DataReadRequest
-import com.google.android.gms.fitness.request.DataSourcesRequest
-import com.google.android.gms.fitness.request.OnDataPointListener
-import com.google.android.gms.fitness.request.SensorRequest
-import org.w3c.dom.Text
+import com.google.android.gms.fitness.request.*
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -143,11 +138,12 @@ class HeartRate : AppCompatActivity() {
         googleApiClient = GoogleApiClient.Builder(this)
             .addApi(Fitness.SENSORS_API)
             .addApi(Fitness.HISTORY_API)
+            .addApi(Fitness.SESSIONS_API)
             .addScope(Fitness.SCOPE_BODY_READ)
             .addScope(Fitness.SCOPE_ACTIVITY_READ)
 //            .addScope(Fitness.SCOPE_LOCATION_READ)
-//            .addScope(Scope(Scopes.FITNESS_BLOOD_GLUCOSE_READ))
-//            .addScope(Scope(Scopes.FITNESS_BLOOD_PRESSURE_READ))
+            .addScope(Scope(Scopes.FITNESS_BLOOD_GLUCOSE_READ))
+            .addScope(Scope(Scopes.FITNESS_BLOOD_PRESSURE_READ))
             .addConnectionCallbacks(
                 object : GoogleApiClient.ConnectionCallbacks {
 
@@ -276,20 +272,35 @@ class HeartRate : AppCompatActivity() {
     }
 
     private fun readBpmData() {
-        val endTime = LocalDateTime.now().atZone(ZoneId.systemDefault())
-        val startTime = endTime.minusWeeks(1)
+//        val endTime = LocalDateTime.now().atZone(ZoneId.systemDefault())
+//        val startTime = endTime.minusWeeks(1)
+
+        val cal = Calendar.getInstance()
+        val now = Date()
+        cal.time = now
+        val endTime = cal.timeInMillis
+
+        cal.add(Calendar.WEEK_OF_YEAR, -1)
+        val startTime = cal.timeInMillis
+
         Log.i(TAG, "Range Start: $startTime")
         Log.i(TAG, "Range End: $endTime")
 
         Fitness.HistoryApi.readData(
             googleApiClient, DataReadRequest.Builder()
                 .read(DataType.TYPE_HEART_RATE_BPM)
-                .setTimeRange(startTime.toEpochSecond(), endTime.toEpochSecond(), TimeUnit.SECONDS)
-                .bucketByActivityType(1, TimeUnit.SECONDS)
+                .read(HealthDataTypes.TYPE_BLOOD_GLUCOSE)
+                .read(HealthDataTypes.TYPE_BLOOD_PRESSURE)
+                .bucketByTime(1, TimeUnit.DAYS)
+                .enableServerQueries()
+                .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
+//                .bucketByActivityType(1, TimeUnit.SECONDS)
                 .build()
         )
             .setResultCallback { response ->
                 dumpDataSet(response.getDataSet(DataType.TYPE_HEART_RATE_BPM))
+                dumpDataSet(response.getDataSet(HealthDataTypes.TYPE_BLOOD_GLUCOSE))
+                dumpDataSet(response.getDataSet(HealthDataTypes.TYPE_BLOOD_PRESSURE))
                 response.buckets.forEach { bucket ->
                     bucket.dataSets.forEach { dataSet ->
                         dataSet.dataPoints.forEach { dataPoint ->
