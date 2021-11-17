@@ -24,6 +24,7 @@ import com.google.android.gms.common.api.GoogleApiClient
 import com.google.android.gms.common.api.Scope
 import com.google.android.gms.fitness.Fitness
 import com.google.android.gms.fitness.FitnessOptions
+import com.google.android.gms.fitness.HistoryApi
 import com.google.android.gms.fitness.data.*
 import com.google.android.gms.fitness.request.*
 import java.time.Instant
@@ -139,8 +140,14 @@ class HeartRate : AppCompatActivity() {
             .addApi(Fitness.SENSORS_API)
             .addApi(Fitness.HISTORY_API)
             .addApi(Fitness.SESSIONS_API)
+            .addApi(Fitness.RECORDING_API)
+            .addApi(Fitness.BLE_API)
+            .addApi(Fitness.GOALS_API)
+            .addApi(Fitness.CONFIG_API)
             .addScope(Fitness.SCOPE_BODY_READ)
+            .addScope(Fitness.SCOPE_BODY_READ_WRITE)
             .addScope(Fitness.SCOPE_ACTIVITY_READ)
+            .addScope(Fitness.SCOPE_ACTIVITY_READ_WRITE)
 //            .addScope(Fitness.SCOPE_LOCATION_READ)
             .addScope(Scope(Scopes.FITNESS_BLOOD_GLUCOSE_READ))
             .addScope(Scope(Scopes.FITNESS_BLOOD_PRESSURE_READ))
@@ -286,25 +293,32 @@ class HeartRate : AppCompatActivity() {
         Log.i(TAG, "Range Start: $startTime")
         Log.i(TAG, "Range End: $endTime")
 
+        Fitness.RecordingApi.subscribe(
+            googleApiClient, DataType.TYPE_HEART_RATE_BPM
+        )
+            .setResultCallback {
+                println(it)
+            }
+
+
         Fitness.HistoryApi.readData(
             googleApiClient, DataReadRequest.Builder()
                 .read(DataType.TYPE_HEART_RATE_BPM)
-                .read(HealthDataTypes.TYPE_BLOOD_GLUCOSE)
-                .read(HealthDataTypes.TYPE_BLOOD_PRESSURE)
-                .bucketByTime(1, TimeUnit.DAYS)
                 .enableServerQueries()
+                .bucketByTime(1, TimeUnit.DAYS)
                 .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
-//                .bucketByActivityType(1, TimeUnit.SECONDS)
                 .build()
         )
             .setResultCallback { response ->
                 dumpDataSet(response.getDataSet(DataType.TYPE_HEART_RATE_BPM))
-                dumpDataSet(response.getDataSet(HealthDataTypes.TYPE_BLOOD_GLUCOSE))
-                dumpDataSet(response.getDataSet(HealthDataTypes.TYPE_BLOOD_PRESSURE))
                 response.buckets.forEach { bucket ->
+                    println(bucket)
                     bucket.dataSets.forEach { dataSet ->
+                        println(dataSet)
                         dataSet.dataPoints.forEach { dataPoint ->
+                            println(dataPoint)
                             dataPoint.dataType.fields.forEach { field ->
+                                println(field)
                                 println(dataPoint.getValue(field).asFloat())
                                 addContentToView(dataPoint.getValue(field).asFloat())
                             }
@@ -417,8 +431,9 @@ class HeartRate : AppCompatActivity() {
             DataType.TYPE_CALORIES_EXPENDED
         )
             .setResultCallback {
-                println(it.total.dataPoints[0].getValue(Field.FIELD_CALORIES).asFloat())
-                addContentToView3(it.total.dataPoints[0].getValue(Field.FIELD_CALORIES).asFloat().toInt())
+                println(it)
+//                println(it.total.dataPoints[0].getValue(Field.FIELD_CALORIES).asFloat())
+//                addContentToView3(it.total.dataPoints[0].getValue(Field.FIELD_CALORIES).asFloat().toInt())
             }
     }
 

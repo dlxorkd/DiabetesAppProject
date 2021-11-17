@@ -246,7 +246,7 @@ class VerticalModeActivity : AppCompatActivity(){
 //                        mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
 //                        mongoClient = MongoClient(ServerAddress("127.0.0.1", 27017))
 
-                        mongoClient = MongoClient("6.tcp.ngrok.io", 18800)
+                        mongoClient = MongoClient("2.tcp.ngrok.io", 12032)
 
                         println("Connected to MongoDB!")
                         var database = mongoClient!!.getDatabase("OkKim_Activity")
@@ -377,7 +377,7 @@ class VerticalModeActivity : AppCompatActivity(){
 //                        mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
 //                        mongoClient = MongoClient(ServerAddress("127.0.0.1", 27017))
 
-                        mongoClient = MongoClient("6.tcp.ngrok.io", 18800)
+                        mongoClient = MongoClient("2.tcp.ngrok.io", 12032)
 
                         println("Connected to MongoDB!")
                         var database = mongoClient!!.getDatabase("OkKim_Food")
@@ -525,7 +525,7 @@ class VerticalModeActivity : AppCompatActivity(){
 //                        mongoClient = MongoClient(ServerAddress("10.0.2.2", 27017))
 //                        mongoClient = MongoClient(ServerAddress("127.0.0.1", 27017))
 
-                        mongoClient = MongoClient("6.tcp.ngrok.io", 18800)
+                        mongoClient = MongoClient("2.tcp.ngrok.io", 12032)
 
                         println("Connected to MongoDB!")
                         var database = mongoClient!!.getDatabase("diabetes")
